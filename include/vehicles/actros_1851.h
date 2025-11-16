@@ -1,30 +1,26 @@
 #pragma once
 
+#include "../sounds/actros_1851/air_brake.h"
+#include "../sounds/actros_1851/blinker.h"
+#include "../sounds/actros_1851/coupling.h"
+#include "../sounds/actros_1851/decoupling.h"
+#include "../sounds/actros_1851/engine_fan.h"
+#include "../sounds/actros_1851/engine_idle.h"
+#include "../sounds/actros_1851/engine_rev.h"
+#include "../sounds/actros_1851/engine_start.h"
+#include "../sounds/actros_1851/engine_stop.h"
+#include "../sounds/actros_1851/engine_turbo.h"
+#include "../sounds/actros_1851/gear_shift.h"
+#include "../sounds/actros_1851/horn.h"
+#include "../sounds/actros_1851/jake_brake.h"
+#include "../sounds/actros_1851/parking_brake.h"
+#include "../sounds/actros_1851/reverse.h"
 #include "../vehicle.h"
-#include "sounds/Actros1863JakeBrake.h"
-// #include "sounds/Actros1863idle2.h"
-#include "sounds/Actros1863knock3.h"
-#include "sounds/Actros1863rev.h"
-#include "sounds/Actros1863start.h"
-#include "sounds/ClunkingGearShifting.h"
-#include "sounds/GenericFan.h"
-#include "sounds/ManTgeHorn.h"
-#include "sounds/ParkingBrake.h"
-#include "sounds/TruckAirBrakes2.h"
-#include "sounds/TruckReversingBeep.h"
-#include "sounds/TurboWhistle.h"
-#include "sounds/UnimogU1000TurboWastegate.h"
-#include "sounds/coupling.h"
-#include "sounds/door.h"
-#include "sounds/mb_idle1.h"
-#include "sounds/mb_indicator.h"
-#include "sounds/supercharger.h"
-#include "sounds/uncoupling.h"
 
 const Vehicle ACTROS_1851 = {
     .name = {'A', 'c', 't', 'r', 'o', 's', ' ', '1', '8', '5', '1', '\0'},
-    .startVolume = 130,
-    .idleVolume = 70,
+    .startVolume = 70,
+    .idleVolume = 80,
     .engineIdleVolume = 50,
     .fullThrottleVolume = 140,
     .revSoundEnabled = true,
@@ -44,7 +40,7 @@ const Vehicle ACTROS_1851 = {
     .dieselKnockAdaptiveVolume = 50,
     .dieselKnockPulses = 0,
     .dieselKnockDependsOnRPM = true,
-    .dieselKnockCylinders = {0},
+    .dieselKnockCylinders = {0, 0, 0, 0},
     .turboEnabled = true,
     .turboVolume = 30,
     .turboIdleVolume = 0,
@@ -52,7 +48,7 @@ const Vehicle ACTROS_1851 = {
     .chargerVolume = 0,
     .chargerIdleVolume = 10,
     .chargerStartPoint = 10,
-    .wastegateEnabled = true,
+    .wastegateEnabled = false,
     .wastegateVolume = 50,
     .wastegateIdleVolume = 1,
     .fanEnabled = false,
@@ -66,7 +62,7 @@ const Vehicle ACTROS_1851 = {
     .reversingVolume = 70,
     .indicatorVolume = 100,
     .indicatorOnThreshold = 300,
-    .couplingSoundEnabled = false,
+    .couplingSoundEnabled = true,
     .couplingVolume = 100,
     .xenonLightsEnabled = false,
     .separateHighBeamEnabled = true,

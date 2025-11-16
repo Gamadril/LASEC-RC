@@ -121,14 +121,6 @@ public:
     return _state.airBrake;
   }
 
-  void setParkingBrake(bool value) {
-    _state.parkingBrake = value;
-  }
-
-  bool isParkingBrake() {
-    return _state.parkingBrake;
-  }
-
   void setWastegate(bool value) {
     _state.wastegate = value;
   }
@@ -150,7 +142,7 @@ public:
   }
 
   void setRPM(uint16_t value) {
-    _state.rpm = constrain(value, 0, MAX_RPM);
+    _state.rpm = constrain(value, 0, 500);
   }
 
   bool isBraking() {
@@ -177,8 +169,8 @@ public:
   bool debug() {
     printf("Hazard: %d\nGearShift: %d\nThrottle %d\nRPM: %d\nSpeed: %d\nGear: "
            "%d\nEngineState: %d\nDriveState: %d\n\n",
-           _state.hazard, _state.gearShift, _state.throttle, _state.rpm, _state.speed,
-           _state.gear, _state.engineState, _state.driveState);
+           _state.hazard, _state.gearShift, _state.throttle, _state.rpm, _state.speed, _state.gear,
+           _state.engineState, _state.driveState);
     return true;
   }
 

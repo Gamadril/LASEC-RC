@@ -1,25 +1,11 @@
-#include "argtable3/argtable3.h"
-#include "ble_constroller.h"
-#include "driver/gpio.h"
-#include "driver/sdmmc_host.h"
-#include "driver/sdspi_host.h"
-#include "driver/spi_common.h"
-#include "driver/uart.h"
-#include "driver/uart_vfs.h"
-#include "esp_console.h"
+// #include "argtable3/argtable3.h"
+// #include "ble_constroller.h"
 #include "esp_log.h"
-#include "esp_spiffs.h"
 #include "esp_system.h"
 #include "esp_task_wdt.h"
-#include "esp_timer.h"
-#include "esp_vfs_dev.h"
-#include "esp_vfs_fat.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
-#include "linenoise/linenoise.h"
-#include "nvs_flash.h"
-#include "sdmmc_cmd.h"
 
 // ESP-IDF equivalents for Arduino functions
 #define constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
@@ -613,7 +599,8 @@ void esc() {
       } else if (pulse == -1 && escPulse == 0 && state.getGear() != 0) {
         state.setDriveState(DRIVING_BACKWARD); // Prevents state machine from hanging!
       } else if (escPulse == 0 && (pulse == 0 || state.getGear() == 0)) {
-        state.setDriveState(STANDING); // Go to standing when stopped and (throttle neutral or clutch off)
+        state.setDriveState(
+            STANDING); // Go to standing when stopped and (throttle neutral or clutch off)
       }
       break;
 
@@ -678,7 +665,8 @@ void esc() {
       } else if (pulse == 1 && escPulse == 0 && state.getGear() != 0) {
         state.setDriveState(DRIVING_FORWARD); // Prevents state machine from hanging!
       } else if (escPulse == 0 && (pulse == 0 || state.getGear() == 0)) {
-        state.setDriveState(STANDING); // Go to standing when stopped and (throttle neutral or clutch off)
+        state.setDriveState(
+            STANDING); // Go to standing when stopped and (throttle neutral or clutch off)
       }
       break;
 
@@ -772,7 +760,7 @@ void gearboxDetection() {
   if (!isGearIn()) {
     state.setGear(0);
     state.setGearShift(NOT);
-    previousGear = 0;  // Reset so gear detection works when re-engaged
+    previousGear = 0; // Reset so gear detection works when re-engaged
     // Don't force braking - let the ESC state machine handle coasting with gear == 0
     return;
   }

@@ -449,6 +449,8 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   static uint32_t curCouplingSample = 0;     // Index of currently loaded trailer coupling sample
   static uint32_t curUncouplingSample = 0;   // Index of currently loaded trailer uncoupling sample
   static uint32_t curDieselKnockSample = 0;  // Index of currently loaded Diesel knock sample
+  static uint32_t curStartSample = 0;        // Index of currently loaded engine start sample
+  static uint32_t curStopSample = 0;         // Index of currently loaded engine stop sample
 
   static int32_t a1 = 0; // Group "a" mixer signal (horn)
   static int32_t b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, b7 = 0, b8 = 0, b9 = 0,
@@ -459,17 +461,16 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   static bool knockSilent = false;
   static uint8_t curKnockCylinder = 0;
 
-  // Local channel values for this ISR invocation
-  int16_t leftChannelValue = 0;
-  int16_t rightChannelValue = 0;
+  int32_t leftChannelValue = 0;
+  int32_t rightChannelValue = 0;
 
   // Group "a" (horn)
   if (soundController.horn || soundController.hornLatch) {
-    if (curHornSample < sizeof(hornSamples) - 1) {
-      a1 = (hornSamples[curHornSample] * soundController.vehicle->hornVolume / 100);
+    if (curHornSample < horn_samples_length - 1) {
+      a1 = (horn_samples[curHornSample] * soundController.vehicle->hornVolume / 100);
       curHornSample++;
-      if (soundController.horn && curHornSample == hornLoopEnd) {
-        curHornSample = hornLoopBegin; // Loop, if trigger still present
+      if (soundController.horn && curHornSample == horn_loop_end) {
+        curHornSample = horn_loop_begin; // Loop, if trigger still present
       }
     } else {
       curHornSample = 0;
@@ -482,8 +483,8 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
 
   // Reversing beep sound "b1"
   if (soundController.modelState->isMovingBackward()) {
-    if (curReversingSample < sizeof(reversingSamples) - 1) {
-      b1 = (reversingSamples[curReversingSample] * soundController.vehicle->reversingVolume / 100);
+    if (curReversingSample < reverse_samples_length - 1) {
+      b1 = (reverse_samples[curReversingSample] * soundController.vehicle->reversingVolume / 100);
       curReversingSample++;
     } else {
       curReversingSample = 0;
@@ -495,9 +496,8 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
 
   // Indicator tick sound "b2"
   if (soundController.turnSignal) {
-    if (curIndicatorSample < sizeof(mb_indicatorSamples) - 1) {
-      b2 = (mb_indicatorSamples[curIndicatorSample] * soundController.vehicle->indicatorVolume /
-            100);
+    if (curIndicatorSample < blinker_samples_length - 1) {
+      b2 = (blinker_samples[curIndicatorSample] * soundController.vehicle->indicatorVolume / 100);
       curIndicatorSample++;
     } else {
       soundController.turnSignal = false;
@@ -508,10 +508,11 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   }
 
   // Wastegate (blowoff) sound, triggered after rapid throttle drop "b3"
+  /*
   if (soundController.vehicle->wastegateEnabled) {
     if (soundController.wastegate) {
-      if (curWastegateSample < sizeof(wastegateSamples) - 1) {
-        b3 = (wastegateSamples[curWastegateSample] * soundController.rpmDependentWastegateVolume /
+      if (curWastegateSample < wastegate_samples_length - 1) {
+        b3 = (wastegate_samples[curWastegateSample] * soundController.rpmDependentWastegateVolume /
               100 * soundController.vehicle->wastegateVolume / 100);
         curWastegateSample++;
       } else {
@@ -522,45 +523,32 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
       curWastegateSample = 0; // ensure, next sound will start @ first sample
     }
   }
+  */
 
   // Air brake release sound "b4", triggered after stop
   if (soundController.modelState->isAirBrake()) {
-    if (curBrakeSample < sizeof(brakeSamples) - 1) {
-      b4 = (brakeSamples[curBrakeSample] * soundController.vehicle->brakeVolume / 100);
+    if (curBrakeSample < air_brake_samples_length - 1) {
+      b4 = (air_brake_samples[curBrakeSample] * soundController.vehicle->brakeVolume / 100);
       curBrakeSample++;
     } else {
       soundController.modelState->setAirBrake(false);
     }
   } else {
     b4 = 0;
-    curBrakeSample = 0; // ensure, next sound will start @ first sample
-  }
-
-  // Air parking brake attaching sound "b5", triggered after engine off
-  if (soundController.modelState->isParkingBrake()) {
-    if (curParkingBrakeSample < sizeof(parkingBrakeSamples) - 1) {
-      b5 = (parkingBrakeSamples[curParkingBrakeSample] *
-            soundController.vehicle->parkingBrakeVolume / 100);
-      curParkingBrakeSample++;
-    } else {
-      soundController.modelState->setParkingBrake(false);
-    }
-  } else {
-    b5 = 0;
-    curParkingBrakeSample = 0; // ensure, next sound will start @ first sample
+    curBrakeSample = 0;
   }
 
   // Pneumatic gear shifting sound "b6", triggered while shifting the TAMIYA 3 speed transmission
   if (soundController.shifting && soundController.modelState->isEngineRunning()) {
-    if (curShiftingSample < sizeof(shiftingSamples) - 1) {
-      b6 = (shiftingSamples[curShiftingSample] * soundController.vehicle->shiftingVolume / 100);
+    if (curShiftingSample < gear_shift_samples_length - 1) {
+      b6 = (gear_shift_samples[curShiftingSample] * soundController.vehicle->shiftingVolume / 100);
       curShiftingSample++;
     } else {
       soundController.shifting = false;
     }
   } else {
     b6 = 0;
-    curShiftingSample = 0; // ensure, next sound will start @ first sample
+    curShiftingSample = 0;
   }
 
   // Diesel ignition "knock" is played in fixed sample rate section, because we don't want changing
@@ -585,8 +573,8 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   }
 
   /*
-  if (curDieselKnockSample < sizeof(knockSamples)) {
-    b7 = knockSamples[curDieselKnockSample] * soundController.vehicle->dieselKnockVolume / 100 *
+  if (curDieselKnockSample < knock_samples_length) {
+    b7 = knock_samples[curDieselKnockSample] * soundController.vehicle->dieselKnockVolume / 100 *
          soundController.throttleDependentKnockVolume / 100;
 
     if (soundController.vehicle->dieselKnockDependsOnRPM) {
@@ -603,8 +591,8 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   if (soundController.vehicle->couplingSoundEnabled) {
     // Trailer coupling sound "b8", triggered by switch
     if (soundController.coupling) {
-      if (curCouplingSample < sizeof(couplingSamples) - 1) {
-        b8 = (couplingSamples[curCouplingSample] * soundController.vehicle->couplingVolume / 100);
+      if (curCouplingSample < coupling_samples_length - 1) {
+        b8 = (coupling_samples[curCouplingSample] * soundController.vehicle->couplingVolume / 100);
         curCouplingSample++;
       } else {
         soundController.coupling = false;
@@ -616,8 +604,8 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
 
     // Trailer uncoupling sound "b9", triggered by switch
     if (soundController.uncoupling) {
-      if (curUncouplingSample < sizeof(uncouplingSamples) - 1) {
-        b9 = (uncouplingSamples[curUncouplingSample] * soundController.vehicle->couplingVolume /
+      if (curUncouplingSample < decoupling_samples_length - 1) {
+        b9 = (decoupling_samples[curUncouplingSample] * soundController.vehicle->couplingVolume /
               100);
         curUncouplingSample++;
       } else {
@@ -630,18 +618,21 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   }
 
   // Diesel knock sound - triggered by phase accumulator in engine resampler
+  /*
   if (soundController.dieselKnockTrigger) {
-    if (curDieselKnockSample < sizeof(knockSamples) - 1) {
+    if (curDieselKnockSample < knock_samples_length - 1) {
       if (soundController.dieselKnockTriggerFirst) {
-        b10 = (knockSamples[curDieselKnockSample] * soundController.throttleDependentKnockVolume /
+        b10 = (knock_samples[curDieselKnockSample] * soundController.throttleDependentKnockVolume /
                100 * soundController.vehicle->dieselKnockVolume / 100);
       } else {
         if (knockSilent) {
-          b10 = (knockSamples[curDieselKnockSample] * soundController.throttleDependentKnockVolume /
-                 100 * soundController.vehicle->dieselKnockVolume / 100 / 3);
+          b10 =
+              (knock_samples[curDieselKnockSample] * soundController.throttleDependentKnockVolume /
+               100 * soundController.vehicle->dieselKnockVolume / 100 / 3);
         } else {
-          b10 = (knockSamples[curDieselKnockSample] * soundController.throttleDependentKnockVolume /
-                 100 * soundController.vehicle->dieselKnockVolume / 100);
+          b10 =
+              (knock_samples[curDieselKnockSample] * soundController.throttleDependentKnockVolume /
+               100 * soundController.vehicle->dieselKnockVolume / 100);
         }
       }
       curDieselKnockSample++;
@@ -659,75 +650,45 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
   } else {
     b10 = 0;
   }
+  */
 
   // Resample engine at fixed I2S rate using 16.16 phase accumulators
   static uint32_t phaseIdle = 0;
   static uint32_t phaseRev = 0;
   static uint32_t phaseJake = 0;
-  static uint32_t phaseStart = 0;
   static uint32_t phaseTurbo = 0;
   static uint32_t phaseFan = 0;
   static uint32_t phaseCharger = 0;
-  static uint32_t attenuatorMillis = 0;
-  static uint16_t attenuator = 1;
-  static uint16_t speedPercentage = 100;
   static EngineState prevEs = OFF;
   EngineState es = soundController.modelState->getEngineState();
   if (es != prevEs) {
     // Reset phases on state transition for clean starts
-    if (es == STARTING) {
-      phaseStart = 0;
-    }
     if (es == RUNNING) {
       phaseIdle = phaseRev = phaseJake = 0;
       lastKnockPhase = 0;
       soundController.dieselKnockTrigger = true;
       soundController.dieselKnockTriggerFirst = true;
     }
-    if (es == STOPPING) {
-      speedPercentage = 100;
-      attenuator = 1;
-      attenuatorMillis = millis();
-    }
     prevEs = es;
   }
 
   if (es == STARTING) {
-    // Play start sample at default ticks like original
-    uint32_t ticks = DEFAULT_TICKS;
-    uint32_t phaseInc = (uint32_t)(((uint64_t)TIMER_RESOLUTION_HZ << 16) /
-                                   ((uint64_t)ticks * (uint64_t)AUDIO_RATE));
-    phaseStart += phaseInc;
-    uint32_t lenStart = (uint32_t)sizeof(startSamples);
-    int32_t startInterp = 0;
-    if (lenStart > 1) {
-      uint32_t i0 = (phaseStart >> 16) % lenStart;
-
-      // Check if we've reached the end of start sample - transition to RUNNING
-      if (i0 >= lenStart - 1) {
-        soundController.modelState->setEngineState(RUNNING);
-        soundController.modelState->setAirBrake(true);
-        leftChannelValue = 0;
-      } else {
-        uint32_t j0 = (i0 + 1) % lenStart;
-        uint32_t frac0 = (phaseStart & 0xFFFF);
-        int16_t t0 = (int16_t)((int8_t)startSamples[i0]) << 8;
-        int16_t t1 = (int16_t)((int8_t)startSamples[j0]) << 8;
-        startInterp = t0 + ((int32_t)(t1 - t0) * (int32_t)frac0 >> 16);
-
-        int32_t startScaled = startInterp;
-        startScaled = (startScaled * soundController.throttleDependentVolume) / 100;
-        startScaled = (startScaled * soundController.vehicle->startVolume) / 100;
-        startScaled = (startScaled * soundController.config->volume) / 100;
-        leftChannelValue = (int16_t)constrain(startScaled, -32768, 32767);
-      }
+    int16_t startSample = 0;
+    if (curStartSample < engine_start_samples_length - 1) {
+      startSample = engine_start_samples[curStartSample];
+      curStartSample++;
+    } else {
+      soundController.modelState->setEngineState(RUNNING);
+      soundController.modelState->setAirBrake(true);
+      curStartSample = 0;
     }
+
+    int32_t startScaled = startSample;
+    startScaled = (startScaled * soundController.vehicle->startVolume) / 100;
+    leftChannelValue = (int16_t)constrain(startScaled, -32768, 32767);
   } else if (es == RUNNING) {
     // Use freshest RPM-derived ticks to minimize latency
     uint32_t ticks = engineSampleRate ? engineSampleRate : variableTimerTicks;
-    if (ticks == 0) {
-      ticks = DEFAULT_TICKS;
-    }
     uint32_t phaseInc = (uint32_t)(((uint64_t)TIMER_RESOLUTION_HZ << 16) /
                                    ((uint64_t)ticks * (uint64_t)AUDIO_RATE));
 
@@ -736,29 +697,29 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
     if (!soundController.modelState->isJakeBrake()) {
       // Idle
       phaseIdle += phaseInc;
-      uint32_t lenIdle = (uint32_t)sizeof(samples);
       // Wrap phase to prevent overflow
-      uint32_t maxPhaseIdle = lenIdle << 16;
+      uint32_t maxPhaseIdle = engine_idle_samples_length < 16;
       if (phaseIdle >= maxPhaseIdle)
         phaseIdle -= maxPhaseIdle;
 
       int32_t idleInterp = 0;
-      if (lenIdle > 1) {
-        uint32_t i = (phaseIdle >> 16) % lenIdle;
+      if (engine_idle_samples_length > 1) {
+        uint32_t i = (phaseIdle >> 16) % engine_idle_samples_length;
 
         // Check if we wrapped around - trigger jake brake if needed
         if (i == 0 && soundController.modelState->isJakeBrake()) {
           soundController.engineJakeBraking = true;
         }
 
-        uint32_t j = (i + 1) % lenIdle;
+        uint32_t j = (i + 1) % engine_idle_samples_length;
         uint32_t frac = (phaseIdle & 0xFFFF);
-        int16_t s0 = (int16_t)((int8_t)samples[i]) << 8;
-        int16_t s1 = (int16_t)((int8_t)samples[j]) << 8;
+        int16_t s0 = engine_idle_samples[i];
+        int16_t s1 = engine_idle_samples[j];
         idleInterp = s0 + ((int32_t)(s1 - s0) * (int32_t)frac >> 16);
 
         // Diesel knock triggering based on phase position
-        uint32_t knockInterval = (lenIdle << 16) / soundController.vehicle->dieselKnockInterval;
+        uint32_t knockInterval =
+            (engine_idle_samples_length << 16) / soundController.vehicle->dieselKnockInterval;
         uint32_t phaseDiff = (phaseIdle >= lastKnockPhase)
                                  ? (phaseIdle - lastKnockPhase)
                                  : (maxPhaseIdle - lastKnockPhase + phaseIdle);
@@ -773,18 +734,17 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
       int32_t revInterp = 0;
       if (soundController.vehicle->revSoundEnabled) {
         phaseRev += phaseInc;
-        uint32_t lenRev = (uint32_t)sizeof(revSamples);
         // Wrap phase to prevent overflow
-        uint32_t maxPhaseRev = lenRev << 16;
+        uint32_t maxPhaseRev = engine_rev_samples_length << 16;
         if (phaseRev >= maxPhaseRev)
           phaseRev -= maxPhaseRev;
 
-        if (lenRev > 1) {
-          uint32_t i2 = (phaseRev >> 16) % lenRev;
-          uint32_t j2 = (i2 + 1) % lenRev;
-          uint32_t frac2 = (phaseRev & 0xFFFF);
-          int16_t r0 = (int16_t)((int8_t)revSamples[i2]) << 8;
-          int16_t r1 = (int16_t)((int8_t)revSamples[j2]) << 8;
+        if (engine_rev_samples_length > 1) {
+          uint32_t i2 = (phaseRev >> 16) % engine_rev_samples_length;
+          uint32_t j2 = (i2 + 1) % engine_rev_samples_length;
+          uint32_t frac2 = phaseRev & 0xFFFF;
+          int16_t r0 = engine_rev_samples[i2];
+          int16_t r1 = engine_rev_samples[j2];
           revInterp = r0 + ((int32_t)(r1 - r0) * (int32_t)frac2 >> 16);
         }
       }
@@ -816,23 +776,22 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
       engineMixed = idleScaled + revScaled;
     } else if (soundController.vehicle->jakeBrakeEnabled) {
       phaseJake += phaseInc;
-      uint32_t lenJake = (uint32_t)sizeof(jakeBrakeSamples);
       int32_t jakeInterp = 0;
-      if (lenJake > 1) {
-        uint32_t i3 = (phaseJake >> 16) % lenJake;
+      if (jake_brake_samples_length > 1) {
+        uint32_t i3 = (phaseJake >> 16) % jake_brake_samples_length;
 
         // Check if jake brake sample finished
-        if (i3 >= lenJake - 1) {
+        if (i3 >= jake_brake_samples_length - 1) {
           phaseJake = 0;
           if (!soundController.modelState->isJakeBrake()) {
             soundController.engineJakeBraking = false;
           }
         }
 
-        uint32_t j3 = (i3 + 1) % lenJake;
-        uint32_t frac3 = (phaseJake & 0xFFFF);
-        int16_t jb0 = (int16_t)((int8_t)jakeBrakeSamples[i3]) << 8;
-        int16_t jb1 = (int16_t)((int8_t)jakeBrakeSamples[j3]) << 8;
+        uint32_t j3 = (i3 + 1) % jake_brake_samples_length;
+        uint32_t frac3 = phaseJake & 0xFFFF;
+        int16_t jb0 = jake_brake_samples[i3];
+        int16_t jb1 = jake_brake_samples[j3];
         jakeInterp = jb0 + ((int32_t)(jb1 - jb0) * (int32_t)frac3 >> 16);
       }
       // Jake volume
@@ -849,22 +808,20 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
     int32_t turboRaw = 0;
     if (soundController.vehicle->turboEnabled) {
       phaseTurbo += phaseInc;
-      uint32_t lenTurbo = (uint32_t)sizeof(turboSamples);
-      if (lenTurbo > 1) {
+      if (engine_turbo_samples_length > 1) {
         // Wrap phase to prevent overflow
-        uint32_t maxPhase = lenTurbo << 16;
+        uint32_t maxPhase = engine_turbo_samples_length << 16;
         if (phaseTurbo >= maxPhase)
           phaseTurbo -= maxPhase;
 
-        uint32_t i4 = (phaseTurbo >> 16) % lenTurbo;
-        uint32_t j4 = (i4 + 1) % lenTurbo;
-        uint32_t frac4 = (phaseTurbo & 0xFFFF);
-        int16_t t0 = (int16_t)((int8_t)turboSamples[i4]) << 8;
-        int16_t t1 = (int16_t)((int8_t)turboSamples[j4]) << 8;
+        uint32_t i4 = (phaseTurbo >> 16) % engine_turbo_samples_length;
+        uint32_t j4 = (i4 + 1) % engine_turbo_samples_length;
+        uint32_t frac4 = phaseTurbo & 0xFFFF;
+        int16_t t0 = engine_turbo_samples[i4];
+        int16_t t1 = engine_turbo_samples[j4];
         int32_t turboInterp = t0 + ((int32_t)(t1 - t0) * (int32_t)frac4 >> 16);
-        // Convert to 8-bit equivalent for mixing
-        turboRaw = (turboInterp >> 8) * soundController.throttleDependentTurboVolume / 100 *
-                   soundController.vehicle->turboVolume / 100;
+        turboRaw = turboInterp * soundController.throttleDependentTurboVolume / 100;
+        turboRaw = turboRaw * soundController.vehicle->turboVolume / 100;
       }
     }
 
@@ -872,29 +829,28 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
     int32_t fanRaw = 0;
     if (soundController.vehicle->fanEnabled) {
       phaseFan += phaseInc;
-      uint32_t lenFan = (uint32_t)sizeof(fanSamples);
-      if (lenFan > 1) {
+      if (engine_fan_samples_length > 1) {
         // Wrap phase to prevent overflow
-        uint32_t maxPhase = lenFan << 16;
+        uint32_t maxPhase = engine_fan_samples_length << 16;
         if (phaseFan >= maxPhase)
           phaseFan -= maxPhase;
 
-        uint32_t i5 = (phaseFan >> 16) % lenFan;
-        uint32_t j5 = (i5 + 1) % lenFan;
+        uint32_t i5 = (phaseFan >> 16) % engine_fan_samples_length;
+        uint32_t j5 = (i5 + 1) % engine_fan_samples_length;
         uint32_t frac5 = (phaseFan & 0xFFFF);
-        int16_t f0 = (int16_t)((int8_t)fanSamples[i5]) << 8;
-        int16_t f1 = (int16_t)((int8_t)fanSamples[j5]) << 8;
+        int16_t f0 = engine_fan_samples[i5];
+        int16_t f1 = engine_fan_samples[j5];
         int32_t fanInterp = f0 + ((int32_t)(f1 - f0) * (int32_t)frac5 >> 16);
-        fanRaw = (fanInterp >> 8) * soundController.throttleDependentFanVolume / 100 *
-                 soundController.vehicle->fanVolume / 100;
+        fanRaw = fanInterp * soundController.throttleDependentFanVolume / 100;
+        fanRaw = fanRaw * soundController.vehicle->fanVolume / 100;
       }
     }
 
     // Supercharger sound (resampled at engine rate)
     int32_t chargerRaw = 0;
+    /*
     if (soundController.vehicle->chargerEnabled) {
       phaseCharger += phaseInc;
-      uint32_t lenCharger = (uint32_t)sizeof(chargerSamples);
       if (lenCharger > 1) {
         // Wrap phase to prevent overflow
         uint32_t maxPhase = lenCharger << 16;
@@ -911,69 +867,45 @@ bool IRAM_ATTR fixed_timer_cb(gptimer_handle_t timer, const gptimer_alarm_event_
                      soundController.vehicle->chargerVolume / 100;
       }
     }
+    */
 
-    // Convert engineMixed to 8-bit equivalent for mixing
-    int32_t engineRaw = engineMixed >> 8;
-
-    // Mix matching original DAC formula: (a * 8/10) + (b / 2) + (c / 5) + (d / 5) + (e / 5)
-    int32_t mixed8bit = ((engineRaw * 8 / 10) + (turboRaw / 5) + (fanRaw / 5) + (chargerRaw / 5));
-
-    // Convert engine mix to 16-bit and apply master volume for LEFT channel
-    int32_t totalMixed = (mixed8bit << 8) * soundController.config->volume / 100;
-    leftChannelValue = (int16_t)constrain(totalMixed, -32768, 32767);
+    int32_t mixed = ((engineMixed * 8 / 10) + (turboRaw / 5) + (fanRaw / 5) + (chargerRaw / 5));
+    int32_t totalMixed = (mixed * soundController.config->volume) / 100;
+    leftChannelValue = constrain(totalMixed, -32768, 32767);
 
     // Check for engine shutdown (ignition off while running)
     if (!soundController.ignition) {
       soundController.modelState->setEngineState(STOPPING);
     }
   } else if (es == STOPPING) {
-    // Engine stopping - play idle sample slowing down and fading out
-    uint32_t ticks = DEFAULT_TICKS * speedPercentage / 100;
-    if (ticks == 0)
-      ticks = DEFAULT_TICKS;
-    uint32_t phaseInc = (uint32_t)(((uint64_t)TIMER_RESOLUTION_HZ << 16) /
-                                   ((uint64_t)ticks * (uint64_t)AUDIO_RATE));
-    phaseIdle += phaseInc;
-    uint32_t lenIdle = (uint32_t)sizeof(samples);
-    int32_t idleInterp = 0;
-    if (lenIdle > 1) {
-      uint32_t i = (phaseIdle >> 16) % lenIdle;
-      uint32_t j = (i + 1) % lenIdle;
-      uint32_t frac = (phaseIdle & 0xFFFF);
-      int16_t s0 = (int16_t)((int8_t)samples[i]) << 8;
-      int16_t s1 = (int16_t)((int8_t)samples[j]) << 8;
-      idleInterp = s0 + ((int32_t)(s1 - s0) * (int32_t)frac >> 16);
+    int16_t stopSample = 0;
+    if (curStopSample < engine_stop_samples_length - 1) {
+      stopSample = engine_stop_samples[curStopSample];
+      curStopSample++;
+    } else {
+      soundController.modelState->setEngineState(PARKING_BRAKE);
+      curStopSample = 0;
     }
 
-    // Apply fade out
-    int32_t stoppingScaled = idleInterp;
-    stoppingScaled = (stoppingScaled * soundController.throttleDependentVolume) / 100;
+    int32_t stoppingScaled = stopSample;
     stoppingScaled = (stoppingScaled * soundController.vehicle->idleVolume) / 100;
     stoppingScaled = (stoppingScaled * soundController.config->volume) / 100;
-    stoppingScaled = stoppingScaled / attenuator;
     leftChannelValue = (int16_t)constrain(stoppingScaled, -32768, 32767);
-
-    // Fade engine sound out every 100ms
-    if (millis() - attenuatorMillis > 100) {
-      attenuatorMillis = millis();
-      attenuator++;
-      speedPercentage += 20;
-    }
-
-    // Transition to PARKING_BRAKE when fully stopped
-    if (attenuator >= 50 || speedPercentage >= 500) {
-      soundController.modelState->setEngineState(PARKING_BRAKE);
-      soundController.modelState->setParkingBrake(true);
-      leftChannelValue = 0;
-    }
   } else if (es == PARKING_BRAKE) {
-    // Check if parking brake released to go back to OFF
-    if (!soundController.modelState->isParkingBrake()) {
+    int16_t parkingBrakeSample = 0;
+    if (curParkingBrakeSample < parking_brake_samples_length - 1) {
+      parkingBrakeSample = parking_brake_samples[curParkingBrakeSample];
+      curParkingBrakeSample++;
+    } else {
       soundController.modelState->setEngineState(OFF);
+      curParkingBrakeSample = 0;
     }
-    leftChannelValue = 0;
+
+    int32_t parkingBrakeScaled = parkingBrakeSample;
+    parkingBrakeScaled = (parkingBrakeScaled * soundController.vehicle->parkingBrakeVolume) / 100;
+    parkingBrakeScaled = (parkingBrakeScaled * soundController.config->volume) / 100;
+    leftChannelValue = (int16_t)constrain(parkingBrakeScaled, -32768, 32767);
   } else {
-    // Engine OFF or unknown state
     leftChannelValue = 0;
   }
 

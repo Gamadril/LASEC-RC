@@ -1,9 +1,8 @@
 #pragma once
 
-#include "nvs.h"
 #include "nvs_flash.h"
 #include "vehicle.h"
-#include "vehicles/MercedesActros1851.h"
+#include "vehicles/actros_1851.h"
 #include <cstring>
 
 #define SERIAL_BAUD_RATE 115200
