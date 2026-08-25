@@ -51,7 +51,7 @@ This is useful for checking engine tone, gear shift sounds, air brake effects, a
 - Power regulation: a TPS54302 step-down converter is used to convert the input supply to the board's regulated 5V voltage rails.
 - Compact PCB layout for tight installation space in RC trucks.
 - Generic I/O headers for custom wiring. These pins are connected directly to the ESP32 and are not protected against overvoltage or reverse polarity.
-- I2C expansion header for custom modules, including lighting boards for the front and rear of the vehicle.
+- I2C expansion header for custom modules. It is not limited to lighting; lighting is simply one example used in this truck build.
 - UART receiver input. In the HoTT SUMD case, this is used as a UART serial port. The same port can also be repurposed for other receiver protocols in other builds.
 - ESC outputs with high-resolution PWM for motor control.
 - Servo outputs for steering, gear shifts, and auxiliary functions. The `dev1` and `dev2` slots on the main connector are available for additional custom servo connections.
@@ -65,6 +65,8 @@ The firmware is built with ESP-IDF and FreeRTOS. It uses a modular structure to 
 ### Engine and audio simulation
 
 The engine model calculates RPM from throttle input, vehicle speed, gear selection, and drivetrain load. The resulting values drive engine sound generation and engine-related behavior. The project includes a sound engine that reads `.wav` files from the internal SPIFFS filesystem and plays them with the configured timing and volume.
+
+Before audio can be uploaded to the board, the `.wav` files must first be prepared in the `sounds/` directory. In PlatformIO, run the custom task `Generate Audio Pack` from the `Custom` section to package the sound files into the build output. Then run `Upload Audio Pack` to write the generated audio payload to the matching partition on the device.
 
 The current repository includes sound files for the Mercedes-Benz Actros MP4 engine and related systems. Sound events include start and stop behavior, turbo effects, air brake sounds, horn output, and gear shifting audio.
 
@@ -106,9 +108,12 @@ Configuration values are stored in the ESP32's NVS area so they remain available
 This project uses PlatformIO with the ESP-IDF framework.
 
 1. Install PlatformIO.
-2. Build the project with `pio run`.
-3. Upload the firmware with `pio run -t upload`.
-4. Build and upload the SPIFFS filesystem for audio data with:
+2. Prepare the required `.wav` files in `sounds/`.
+3. Build the project with `pio run`.
+4. In PlatformIO, run the custom task `Generate Audio Pack` from the `Custom` section. This packages the sound files into the project build output.
+5. Upload the firmware with `pio run -t upload`.
+6. Run `Upload Audio Pack` to write the generated audio data to the board's audio partition.
+7. Build and upload the SPIFFS filesystem for general data with:
    - `pio run -t buildfs`
    - `pio run -t uploadfs`
 
