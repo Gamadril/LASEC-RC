@@ -80,7 +80,7 @@ Acceleration and braking are handled through inertia simulation, which gives the
 
 The lighting system can control low beam, high beam, fog lights, daytime running lights, parking lights, reverse lights, and brake lights. It also supports turn signal behavior that can be automatic or manually triggered, with optional audio clicks synchronized with the indicator state.
 
-The project includes Windows-style WS2812 RGB support for custom LED effects and underglow lighting. This gives the truck a way to add custom visual feedback beyond the standard vehicle lights.
+The project includes WS2812 RGB support for custom LED effects and underglow lighting. This gives the truck a way to add custom visual feedback beyond the standard vehicle lights.
 
 ### Receiver support and failsafe
 
