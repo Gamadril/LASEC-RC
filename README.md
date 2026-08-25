@@ -12,7 +12,7 @@ The system is designed for RC vehicles that need more than simple forward/revers
 
 ## Hardware
 
-The PCB is defined in the EasyEDA project `ProPrj_LASEC-RC_2026-02-23.epro` and is built around the ESP32-S3-WROOM-1 (N16R8) module.
+The PCB is defined in the EasyEDA project `lasec-rc-easyeda.epro2` and is built around the ESP32-S3-WROOM-1 (N16R8) module.
 
 ### Board images
 
