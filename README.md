@@ -17,8 +17,8 @@ The PCB is defined in the EasyEDA project `lasec-rc-easyeda.epro2` and is built 
 ### Board images
 
 <p>
-  <img src="hardware/3D_PCB_TOP.png" alt="LASEC-RC board top view" width="420">
-  <img src="hardware/3D_PCB_BOTTOM.png" alt="LASEC-RC board bottom view" width="420">
+  <img src="hardware/3D_PCB_TOP.png" alt="LASEC-RC board top view" width="620">
+  <img src="hardware/3D_PCB_BOTTOM.png" alt="LASEC-RC board bottom view" width="620">
 </p>
 
 Schematics: [SCH_LASEC-RC_2026-08-25.pdf](hardware/SCH_LASEC-RC_2026-08-25.pdf)
