@@ -49,7 +49,7 @@ This is useful for checking engine tone, gear shift sounds, air brake effects, a
 
 - MCU: ESP32-S3 with dual-core processing, WiFi, and BLE.
 - Power regulation: a TPS54302 step-down converter is used to convert the input supply to the board's regulated 5V voltage rails.
-- Compact PCB layout for tight installation space in RC trucks.
+- Compact PCB layout (5x3 cm) for tight installation space in RC trucks.
 - Generic I/O headers for custom wiring. These pins are connected directly to the ESP32 and are not protected against overvoltage or reverse polarity.
 - I2C expansion header for custom modules. It is not limited to lighting; lighting is simply one example used in this truck build.
 - UART receiver input. In the HoTT SUMD case, this is used as a UART serial port. The same port can also be repurposed for other receiver protocols in other builds.
